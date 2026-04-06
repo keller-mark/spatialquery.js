@@ -1,2 +1,6 @@
 node_modules/
 dist/
+*.h5ad
+*.zarr
+*.csv
+*.tsv
