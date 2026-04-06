@@ -68,3 +68,6 @@ if __name__ == "__main__":
 
     # print(fp_tree.to_dict("records"))
     print(json.dumps(fp_tree.to_dict("records"), cls=NumpyEncoder))
+
+    # TODO: also write the inputs to json,
+    # to easily use in Vitest unit tests as inputs to the JS functions.
