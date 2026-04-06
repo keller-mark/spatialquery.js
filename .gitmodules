@@ -1,0 +1,3 @@
+[submodule "Spatial-Query"]
+	path = Spatial-Query
+	url = https://github.com/ShaokunAn/Spatial-Query
