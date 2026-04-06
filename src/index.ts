@@ -1,3 +1,205 @@
-export function helloWorld(): string {
-  return "Hello, World!";
+import Flatbush from 'flatbush';
+import { FPGrowth, Itemset } from 'node-fpgrowth';
+import { extent } from 'd3-array';
+import { InternMap } from 'internmap';
+
+export function generateObsIdToObsSetName(obsSetsMembership: Map<string, string[][]>, currSelectedSetGroup: string) {
+  // Function that accepts an obsId and returns a single string representing the cell type name.
+  return (obsId: string): string => {
+    const obsIdCellType = obsSetsMembership.get(obsId)
+      ?.find(setPath => setPath[0] === currSelectedSetGroup)
+      ?.[1]; // Again, we take the second element of the setPath as the cell type name
+    if (!obsIdCellType) {
+      throw new Error(`Got a falsy cell type value for obsId: ${obsId}`);
+    }
+    return obsIdCellType;
+  };
+}
+
+type ToObsSetNameFunc = ReturnType<typeof generateObsIdToObsSetName>;
+
+/*
+cellTypeOfInterest, //: z.string().nullable(),
+queryType, //: z.enum(['grid', 'rand', 'anchor-type-knn', 'anchor-type-dist']),
+maxDist, //: z.number(),
+minSupport, //: z.number(),
+k, // : z.number(),
+nPoints, // : z.number(),
+uuid, //: z.number(),
+*/
+
+type InitParams = {
+  obsIndex: string[],
+  xCoords: Float32Array,
+  yCoords: Float32Array,
+  obsIdToObsSetName: ToObsSetNameFunc,
+  leafSize?: number,
+  normalizeSpatialCoord?: boolean,
+};
+
+type SqContext = {
+  flatbushIndex: Flatbush,
+  xExtent: [number, number],
+  yExtent: [number, number],
+}
+
+// Build the context object.
+export function buildContext(params: InitParams): SqContext {
+  const {
+    obsIndex, // Array of each obs ID, as a string.
+    xCoords, // TypedArray containing X coordinate of each cell (centroid)
+    yCoords, // TypedArray containing Y coordinate of each cell (centroid)
+
+    leafSize, // Leaf size parameter for KDTree construction. Larger values reduce tree depth but increase computation per query.
+    normalizeSpatialCoord, // If True, normalizes spatial coordinates so mean nearest neighbor distance equals 1. This makes max_dist parameter interpretable as “number of cell diameters.” Set to False if original spatial units (e.g., micrometers) are required and should be preserved for downstream analysis.
+  } = params;
+
+  const xExtent = extent(xCoords);
+  const yExtent = extent(yCoords);
+
+  // initialize Flatbush for N items
+  const flatbushIndex = new Flatbush(obsIndex.length);
+
+  // fill it with 1000 rectangles
+  for (let i = 0; i < obsIndex.length; i++) {
+    flatbushIndex.add(xCoords[i], yCoords[i]);
+  }
+
+  // perform the indexing
+  flatbushIndex.finish();
+
+  return {
+    xExtent,
+    yExtent,
+    flatbushIndex,
+  };
+}
+
+// Reference: https://spatialquery.readthedocs.io/en/latest/generated/SpatialQuery.spatial_query.find_patterns_grid.html
+type FindPatternsGridParams = {
+  // Threshold of frequency to consider a pattern as a frequent pattern.
+  minSupport?: number, // Default: 0.5
+  // Maximum distance to consider a cell as a neighbor. Also used as grid spacing.
+  maxDist?: number, // Default: 20
+  // Minimum neighborhood size for each grid point to consider.
+  minSize?: number, // Default: 0
+};
+
+export async function findPatternsGrid(
+  initParams: InitParams,
+  context: SqContext,
+  params: FindPatternsGridParams,
+  obsIdToObsSetName: ToObsSetNameFunc,
+) {
+  const {
+    obsIndex,
+  } = initParams;
+  const {
+    flatbushIndex,
+    xExtent,
+    yExtent,
+  } = context;
+  const {
+    minSupport = 0.5,
+    maxDist = 20,
+    minSize = 0,
+  } = params;
+
+  // Obtain [x,y] coordinates for the grid points.
+  const gridPoints = [];
+  for(let gridX = xExtent[0] - maxDist; gridX < xExtent[1] + maxDist; gridX += maxDist) {
+    for(let gridY = yExtent[0] - maxDist; gridY < yExtent[1] + maxDist; gridY += maxDist) {
+      gridPoints.push([gridX, gridY]);
+    }
+  }
+
+  // One list of observation IDs per grid point query
+  const indexLists = [];
+  for(const gridPoint of gridPoints) {
+    // TODO: also support k-nearest-neighbor query.
+    // make a k-nearest-neighbors query
+    // const neighborIds = flatbushIndex.neighbors(xCoords[10], yCoords[10], 5);
+
+    // make a bounding box query
+    const [gridX, gridY] = gridPoint;
+    const minX = gridX - maxDist/2;
+    const maxX = gridX + maxDist/2;
+    const minY = gridY - maxDist/2;
+    const maxY = gridY + maxDist/2;
+    // TODO: filter to a circular region? (rather than a rectangular one)
+    const found = flatbushIndex.search(minX, minY, maxX, maxY).map((i) => obsIndex[i]);
+    indexLists.push(found);
+  }
+
+  // Keep track of the obsIds that match the transactions.
+  // This is a map from transaction to a list of observation indices.
+  // We use InternMap to allow using arrays as keys.
+  const transactionToObsIdsMap = new InternMap([], JSON.stringify);
+
+  // Convert lists of observation indices to transactions.
+  const transactions = [];
+  for(const indexList of indexLists) {
+    if(indexList.length > 0) {
+      // For each indexList, we create a transaction of cell types.
+      // We use the obsSetsMembership to get the cell types for each observation ID.
+      const cellTypes = indexList.map(obsId => obsIdToObsSetName(obsId));
+      const transaction = Array.from(new Set(cellTypes)).toSorted();
+      if(transaction.length >= minSize) {
+        transactions.push(transaction);
+        // Store the transaction to observation IDs mapping.
+        // Reference: https://github.com/ShaokunAn/Spatial-Query/blob/0570c54bd6e046466e05c6b800d6701a7ab15c4a/SpatialQuery/spatial_query.py#L789
+        if (!transactionToObsIdsMap.has(transaction)) {
+          transactionToObsIdsMap.set(transaction, indexList);
+        } else {
+          const prevTransaction = transactionToObsIdsMap.get(transaction);
+          transactionToObsIdsMap.set(transaction, prevTransaction.concat(indexList));
+        }
+      }
+    }
+  }
+
+  const fpgrowth = new FPGrowth(minSupport);
+  const itemsets = await fpgrowth.exec(transactions);
+
+  // Returns an array representing the frequent itemsets.
+  const validItemsets = itemsets.filter(d => d.items.length >= minSize);
+  const sortedItemsets = validItemsets.toSorted((a, b) => b.support - a.support);
+
+  const sortedItemsetsWithObsIds = sortedItemsets.map((itemset) => {
+    // For each itemset, get the observation IDs that match the transaction.
+    const motif = itemset.items;
+    let matchingObsIds = [];
+    transactionToObsIdsMap.keys().forEach((transaction) => {
+      // Check if all motif items are present in the transaction.
+      if (motif.every(item => transaction.includes(item))) {
+        // If so, we can use this transaction to get the observation IDs.
+        const obsIds = transactionToObsIdsMap.get(transaction);
+        matchingObsIds = matchingObsIds.concat(obsIds);
+        // Filter the matchingObsIds to only include those obsIds corresponding to
+        // cell types in the current motif.
+        matchingObsIds = matchingObsIds.filter(obsId => {
+          const obsIdCellType = obsIdToObsSetName(obsId);
+          return motif.includes(obsIdCellType);
+        });
+      }
+    });
+    const obsIds = Array.from(new Set(matchingObsIds));
+    return { ...itemset, obsIds };
+  });
+  console.log(sortedItemsetsWithObsIds);
+
+
+  // TODO: compute p-values for each motif
+  // Currently, SpatialQuery only provides p-values for cellTypeOfInterest queries
+  // Reference: https://github.com/ShaokunAn/Spatial-Query/blob/0570c54bd6e046466e05c6b800d6701a7ab15c4a/SpatialQuery/spatial_query.py#L490C13-L492C131
+  // obj = hypergeom(M, n, N), where
+  // M = total number of cells (all cell types)
+  // n = number of cells annotated as cell type of interest / number of times cell type of interest appears in motif
+  // N = number of motif instances (number drawn without replacement) = n_motif
+  // n_motif = number of cells within k-NN or radius
+  // n_center_motif = number of cells within k-NN or radius, centered on cell type of interest
+  // expectation = obj.mean()
+  // p-value = obj.sf(n_center_motif)
+
+  return sortedItemsets;
 }
