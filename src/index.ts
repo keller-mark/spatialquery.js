@@ -2,42 +2,33 @@ import Flatbush from 'flatbush';
 import { FPGrowth, Itemset } from 'node-fpgrowth';
 import { extent } from 'd3-array';
 import { InternMap } from 'internmap';
+import { assert } from './assert.js';
 
 export function generateObsIdToObsSetName(obsSetsMembership: Map<string, string[][]>, currSelectedSetGroup: string) {
   // Function that accepts an obsId and returns a single string representing the cell type name.
-  return (obsId: string): string => {
+  return (obsId: string) => {
     const obsIdCellType = obsSetsMembership.get(obsId)
       ?.find(setPath => setPath[0] === currSelectedSetGroup)
       ?.[1]; // Again, we take the second element of the setPath as the cell type name
-    if (!obsIdCellType) {
-      throw new Error(`Got a falsy cell type value for obsId: ${obsId}`);
-    }
+    assert(typeof obsIdCellType === 'string', "Result of obsIdToObsSetName was falsey");
     return obsIdCellType;
   };
 }
 
 type ToObsSetNameFunc = ReturnType<typeof generateObsIdToObsSetName>;
 
-/*
-cellTypeOfInterest, //: z.string().nullable(),
-queryType, //: z.enum(['grid', 'rand', 'anchor-type-knn', 'anchor-type-dist']),
-maxDist, //: z.number(),
-minSupport, //: z.number(),
-k, // : z.number(),
-nPoints, // : z.number(),
-uuid, //: z.number(),
-*/
-
+// Reference: https://spatialquery.readthedocs.io/en/latest/generated/SpatialQuery.spatial_query.__init__.html
 type InitParams = {
   obsIndex: string[],
   xCoords: Float32Array,
   yCoords: Float32Array,
   obsIdToObsSetName: ToObsSetNameFunc,
-  leafSize?: number,
-  normalizeSpatialCoord?: boolean,
+  leafSize?: number, // Default: 10
+  normalizeSpatialCoord?: boolean, // Default: true
 };
 
 type SqContext = {
+  obsIndex: string[],
   flatbushIndex: Flatbush,
   xExtent: [number, number],
   yExtent: [number, number],
@@ -50,18 +41,25 @@ export function buildContext(params: InitParams): SqContext {
     xCoords, // TypedArray containing X coordinate of each cell (centroid)
     yCoords, // TypedArray containing Y coordinate of each cell (centroid)
 
-    leafSize, // Leaf size parameter for KDTree construction. Larger values reduce tree depth but increase computation per query.
-    normalizeSpatialCoord, // If True, normalizes spatial coordinates so mean nearest neighbor distance equals 1. This makes max_dist parameter interpretable as “number of cell diameters.” Set to False if original spatial units (e.g., micrometers) are required and should be preserved for downstream analysis.
+    leafSize = 10, // Leaf size parameter for KDTree construction. Larger values reduce tree depth but increase computation per query.
+    normalizeSpatialCoord = true, // If True, normalizes spatial coordinates so mean nearest neighbor distance equals 1. This makes max_dist parameter interpretable as “number of cell diameters.” Set to False if original spatial units (e.g., micrometers) are required and should be preserved for downstream analysis.
   } = params;
 
+  // TODO: implement normalizeSpatialCoord here.
+
+  // TODO: ensure that xExtent and yExtent reflect post-normalizeSpatialCoord handling.
   const xExtent = extent(xCoords);
   const yExtent = extent(yCoords);
 
-  // initialize Flatbush for N items
-  const flatbushIndex = new Flatbush(obsIndex.length);
+  assert(typeof xExtent[0] === 'number' && typeof xExtent[1] === 'number', "X extent min or max was undefined.");
+  assert(typeof yExtent[0] === 'number' && typeof yExtent[1] === 'number', "Y extent min or max was undefined.");
+
+  // Initialize Flatbush for N items
+  const flatbushIndex = new Flatbush(obsIndex.length, leafSize);
 
   // fill it with 1000 rectangles
   for (let i = 0; i < obsIndex.length; i++) {
+    // TODO: use normalized values here if normalizeSpatialCoord is true.
     flatbushIndex.add(xCoords[i], yCoords[i]);
   }
 
@@ -69,6 +67,7 @@ export function buildContext(params: InitParams): SqContext {
   flatbushIndex.finish();
 
   return {
+    obsIndex,
     xExtent,
     yExtent,
     flatbushIndex,
@@ -86,15 +85,12 @@ type FindPatternsGridParams = {
 };
 
 export async function findPatternsGrid(
-  initParams: InitParams,
   context: SqContext,
   params: FindPatternsGridParams,
   obsIdToObsSetName: ToObsSetNameFunc,
 ) {
   const {
     obsIndex,
-  } = initParams;
-  const {
     flatbushIndex,
     xExtent,
     yExtent,
