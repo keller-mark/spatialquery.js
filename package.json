@@ -20,6 +20,12 @@
     "test": "vitest run",
     "prepublishOnly": "pnpm run build"
   },
+  "dependencies": {
+    "flatbush": "^4.4.0",
+    "node-fpgrowth": "^1.2.1",
+    "internmap": "^2.0.3",
+    "d3-array": "^2.4.0"
+  },
   "devDependencies": {
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
