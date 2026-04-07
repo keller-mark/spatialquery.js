@@ -4,3 +4,4 @@ dist/
 *.zarr
 *.csv
 *.tsv
+fixtures/*.json

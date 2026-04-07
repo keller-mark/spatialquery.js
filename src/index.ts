@@ -130,7 +130,7 @@ export async function findPatternsGrid(
   // Keep track of the obsIds that match the transactions.
   // This is a map from transaction to a list of observation indices.
   // We use InternMap to allow using arrays as keys.
-  const transactionToObsIdsMap = new InternMap([], JSON.stringify);
+  const transactionToObsIdsMap = new InternMap([], JSON.stringify) as Map<string[], string[]>;
 
   // Convert lists of observation indices to transactions.
   const transactions = [];
@@ -147,14 +147,14 @@ export async function findPatternsGrid(
         if (!transactionToObsIdsMap.has(transaction)) {
           transactionToObsIdsMap.set(transaction, indexList);
         } else {
-          const prevTransaction = transactionToObsIdsMap.get(transaction);
+          const prevTransaction = transactionToObsIdsMap.get(transaction)!;
           transactionToObsIdsMap.set(transaction, prevTransaction.concat(indexList));
         }
       }
     }
   }
 
-  const fpgrowth = new FPGrowth(minSupport);
+  const fpgrowth = new FPGrowth<string>(minSupport);
   const itemsets = await fpgrowth.exec(transactions);
 
   // Returns an array representing the frequent itemsets.
@@ -164,12 +164,12 @@ export async function findPatternsGrid(
   const sortedItemsetsWithObsIds = sortedItemsets.map((itemset) => {
     // For each itemset, get the observation IDs that match the transaction.
     const motif = itemset.items;
-    let matchingObsIds = [];
-    transactionToObsIdsMap.keys().forEach((transaction) => {
+    let matchingObsIds: string[] = [];
+    for(const transaction of transactionToObsIdsMap.keys()) {
       // Check if all motif items are present in the transaction.
       if (motif.every(item => transaction.includes(item))) {
         // If so, we can use this transaction to get the observation IDs.
-        const obsIds = transactionToObsIdsMap.get(transaction);
+        const obsIds = transactionToObsIdsMap.get(transaction)!;
         matchingObsIds = matchingObsIds.concat(obsIds);
         // Filter the matchingObsIds to only include those obsIds corresponding to
         // cell types in the current motif.
@@ -178,7 +178,7 @@ export async function findPatternsGrid(
           return motif.includes(obsIdCellType);
         });
       }
-    });
+    }
     const obsIds = Array.from(new Set(matchingObsIds));
     return { ...itemset, obsIds };
   });
