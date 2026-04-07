@@ -34,6 +34,12 @@ if __name__ == "__main__":
 
     adata = read_h5ad("secondary_analysis.h5ad")
 
+    # We re-write using a newer version of the anndata package.
+    # Certain things in the original secondary_analysis.h5ad file,
+    # like categorical obs columns, cannot be read by
+    # hdf5-as-virtual-zarr.js + anndata.js (at least currently).
+    adata.write_h5ad("secondary_analysis.new.h5ad")
+
     label_key = "predicted_label"
     spatial_key = "X_spatial"
     feature_name = "hugo_symbol"
