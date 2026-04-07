@@ -15,12 +15,12 @@ const fixturesDir = resolve(__dirname, "..", "fixtures");
 
 
 describe("read-anndata", () => {
+  // Reference: https://github.com/keller-mark/hdf5-as-virtual-zarr.js/blob/main/test/read-adata.test.ts
   it("reads an anndata object from a file", async () => {
     const internalStore = new FileSystemStore(join(fixturesDir, "secondary_analysis.h5ad"));
     const store = await HdfStore.fromStore(internalStore);
 
     const group = await zarr.open(store, { kind: "group" });
-    console.log(group.attrs);
 
     // We use a patched anndata.js due to
     // https://github.com/ilan-gold/anndata.js/issues/52
