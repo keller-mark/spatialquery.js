@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  anndata.js:
+    hash: d204ddb6b350c32ee4c36d8e1a10e49fd0dec47da0359a71d3530a2acfcbcc22
+    path: patches/anndata.js.patch
+
 importers:
 
   .:
@@ -29,10 +34,10 @@ importers:
         version: 0.1.4
       anndata.js:
         specifier: 0.0.2
-        version: 0.0.2
+        version: 0.0.2(patch_hash=d204ddb6b350c32ee4c36d8e1a10e49fd0dec47da0359a71d3530a2acfcbcc22)
       hdf5-as-virtual-zarr:
-        specifier: ~0.1.0
-        version: 0.1.0
+        specifier: 0.1.1
+        version: 0.1.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -463,8 +468,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hdf5-as-virtual-zarr@0.1.0:
-    resolution: {integrity: sha512-/Dtuv55YlvAmlvplK095SQmUH6D8pDPu9Qyz2yKkD+24ai8f8uVxWd5Lb80KDgXTM96dwF1IYoKdo1cdgEwoGQ==}
+  hdf5-as-virtual-zarr@0.1.1:
+    resolution: {integrity: sha512-jRtFN4MKQA1AlvMhinptqP3DJP3cYGRYflVgvuMqTmphI7zFvfB5+2inzbSgOF4DG0UafHcpHqGAxUlQ8o77Jg==}
 
   internmap@1.0.1:
     resolution: {integrity: sha512-lDB5YccMydFBtasVtxnZ3MRBHuaoE8GKsppq+EchKL2U4nK/DmEpPHNH8MZe5HkMtpSiTSOZwfN0tzYjO/lJEw==}
@@ -875,7 +880,7 @@ snapshots:
       reference-spec-reader: 0.2.0
       unzipit: 1.4.3
 
-  anndata.js@0.0.2:
+  anndata.js@0.0.2(patch_hash=d204ddb6b350c32ee4c36d8e1a10e49fd0dec47da0359a71d3530a2acfcbcc22):
     dependencies:
       numcodecs: 0.2.2
       zarrita: 0.5.1
@@ -958,7 +963,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hdf5-as-virtual-zarr@0.1.0:
+  hdf5-as-virtual-zarr@0.1.1:
     dependencies:
       '@zarrita/storage': 0.1.4
       reference-spec-reader: 0.2.0

@@ -1,0 +1,2 @@
+patchedDependencies:
+  anndata.js: patches/anndata.js.patch

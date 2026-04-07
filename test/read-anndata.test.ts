@@ -22,6 +22,8 @@ describe("read-anndata", () => {
     const group = await zarr.open(store, { kind: "group" });
     console.log(group.attrs);
 
+    // We use a patched anndata.js due to
+    // https://github.com/ilan-gold/anndata.js/issues/52
     const adata = await readZarr(store);
 
     const obsIndexArr = await adata.obsNames();
@@ -29,6 +31,6 @@ describe("read-anndata", () => {
     // Slice into the array object
     const obsIndex = await get(obsIndexArr, [null]);
 
-    expect(obsIndex.shape).toEqual([10]);
+    expect(obsIndex.shape).toEqual([4058]);
   });
 });

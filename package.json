@@ -33,6 +33,6 @@
     "zarrita": "^0.6.1",
     "@zarrita/storage": "^0.1.4",
     "anndata.js": "0.0.2",
-    "hdf5-as-virtual-zarr": "~0.1.0"
+    "hdf5-as-virtual-zarr": "0.1.1"
   }
 }

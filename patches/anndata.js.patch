@@ -1,0 +1,11 @@
+diff --git a/dist/types.js b/dist/types.js
+index 00bdfde79f860195ff6ed96f0ebeb3458a2533f3..73d8431bba38e3a51f71293eb354e7d1000d711d 100644
+--- a/dist/types.js
++++ b/dist/types.js
+@@ -6,5 +6,5 @@ export const AxisKeys = [
+     "X",
+     "layers",
+     "obsp",
+-    "varp",
++    //"varp",
+ ];
