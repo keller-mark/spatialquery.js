@@ -1,2 +1,2 @@
-patchedDependencies:
-  anndata.js: patches/anndata.js.patch
+packages:
+  - anndata.js

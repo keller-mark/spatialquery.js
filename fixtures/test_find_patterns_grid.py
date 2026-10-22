@@ -4,7 +4,7 @@
 # dependencies = [
 #   "anndata>=0.7.8",
 #   "pybind11",
-#   "SpatialQuery @ git+https://github.com/ShaokunAn/Spatial-Query@9dde563"
+#   "SpatialQuery @ git+https://github.com/ShaokunAn/Spatial-Query@9250b61"
 # ]
 # ///
 #
