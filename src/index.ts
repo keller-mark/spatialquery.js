@@ -3,6 +3,7 @@ import { FPGrowth, Itemset } from 'node-fpgrowth';
 import { extent } from 'd3-array';
 import { InternMap } from 'internmap';
 import { assert } from './assert.js';
+import { hypergeom, fdrCorrection, roundHalfEven } from './stats.js';
 
 export function generateObsIdToObsSetName(obsSetsMembership: Map<string, string[][]>, currSelectedSetGroup: string) {
   // Function that accepts an obsId and returns a single string representing the cell type name.
@@ -191,14 +192,84 @@ export async function findPatternsGrid(
 
 
 
-// TODO: compute p-values for each motif
-// Currently, SpatialQuery only provides p-values for cellTypeOfInterest queries
+type MotifEnrichmentCountsParams = {
+  // Cell type of interest (the center cell type).
+  center: string,
+  // List of cell types in the motif.
+  motif: string[],
+  // Total number of cells (all cell types).
+  numCells: number,
+  // Number of cells annotated as the center cell type.
+  numCenter: number,
+  // Number of cells (of any cell type) whose k-NN or radius neighborhood contains the motif.
+  numMotif: number,
+  // Number of center cells whose k-NN or radius neighborhood contains the motif.
+  numCenterMotif: number,
+};
+
+export type MotifEnrichmentResult = {
+  center: string,
+  motifs: string[],
+  nCenterMotif: number,
+  nCenter: number,
+  nMotif: number,
+  expectation: number,
+  pValue: number,
+  ifSignificant?: boolean,
+  adjPValue?: number,
+};
+
+// Compute the hypergeometric enrichment test for a single motif,
+// given the neighborhood counts from a k-NN or radius-based query.
+// Currently, SpatialQuery only provides p-values for cellTypeOfInterest queries.
 // Reference: https://github.com/ShaokunAn/Spatial-Query/blob/0570c54bd6e046466e05c6b800d6701a7ab15c4a/SpatialQuery/spatial_query.py#L490C13-L492C131
-// obj = hypergeom(M, n, N), where
-// M = total number of cells (all cell types)
-// n = number of cells annotated as cell type of interest / number of times cell type of interest appears in motif
-// N = number of motif instances (number drawn without replacement) = n_motif
-// n_motif = number of cells within k-NN or radius
-// n_center_motif = number of cells within k-NN or radius, centered on cell type of interest
-// expectation = obj.mean()
-// p-value = obj.sf(n_center_motif)
+export function computeMotifEnrichment(params: MotifEnrichmentCountsParams): MotifEnrichmentResult {
+  const {
+    center,
+    motif,
+    numCells,
+    numCenter,
+    numMotif,
+    numCenterMotif,
+  } = params;
+
+  // If the center cell type appears in the motif, divide by the number of times it appears.
+  // Python's round() rounds half to even, so we match that here.
+  let nCenter = numCenter;
+  const centerCount = motif.filter(ct => ct === center).length;
+  if (centerCount > 0) {
+    nCenter = roundHalfEven(nCenter / centerCount);
+  }
+
+  // M = total number of cells, n = number of "successes" (center cells),
+  // N = number drawn without replacement (cells with the motif in their neighborhood).
+  const hyge = hypergeom(numCells, nCenter, numMotif);
+
+  return {
+    center,
+    motifs: motif.toSorted(),
+    nCenterMotif: numCenterMotif,
+    nCenter,
+    nMotif: numMotif,
+    expectation: hyge.mean(),
+    pValue: hyge.sf(numCenterMotif),
+  };
+}
+
+// Determine significance across all tested motifs, applying FDR correction
+// when more than one motif was tested.
+// Reference: https://github.com/ShaokunAn/Spatial-Query/blob/0570c54bd6e046466e05c6b800d6701a7ab15c4a/SpatialQuery/spatial_utils.py#L134
+export function applyFdrCorrection(results: MotifEnrichmentResult[], alpha = 0.05): MotifEnrichmentResult[] {
+  if (results.length === 0) {
+    return [];
+  }
+  if (results.length === 1) {
+    // Single-motif case: significance comes straight from the raw p-value, with no adjusted p-value.
+    const { adjPValue: _, ...result } = results[0];
+    return [{ ...result, ifSignificant: result.pValue < alpha }];
+  }
+  const { rejected, adjusted } = fdrCorrection(results.map(r => r.pValue), alpha);
+  return results
+    .map((r, i) => ({ ...r, adjPValue: adjusted[i], ifSignificant: rejected[i] }))
+    .toSorted((a, b) => a.adjPValue - b.adjPValue);
+}
