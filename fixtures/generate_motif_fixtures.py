@@ -91,6 +91,19 @@ if __name__ == "__main__":
         ct=ct, motifs=specified_motifs, max_dist=max_dist,
     )
 
+    # Nested motif enrichment.
+    enrich_knn_nested = sp.motif_enrichment_knn(
+        ct=ct, k=k, min_support=min_support, max_dist=max_dist, mode='nested',
+    )
+    enrich_dist_nested = sp.motif_enrichment_dist(
+        ct=ct, max_dist=max_dist, min_size=min_size, min_support=min_support, mode='nested',
+    )
+
+    # Motif composition, for the specified motifs plus a larger frequent pattern.
+    composition_motifs = specified_motifs + [max(fp_dist['itemsets'], key=len)]
+    composition_knn = sp.motif_composition_knn(ct=ct, motifs=composition_motifs, k=k, max_dist=max_dist)
+    composition_dist = sp.motif_composition_dist(ct=ct, motifs=composition_motifs, max_dist=max_dist)
+
     with open("secondary_analysis.motif_fixtures.json", "w") as f:
         json.dump({
             "params": dict(
@@ -106,6 +119,7 @@ if __name__ == "__main__":
                 n_points=n_points,
                 seed=seed,
                 specified_motifs=specified_motifs,
+                composition_motifs=composition_motifs,
             ),
             "find_patterns_rand": records(rand_fp),
             "find_fp_knn": records(fp_knn),
@@ -114,4 +128,8 @@ if __name__ == "__main__":
             "motif_enrichment_dist": records(enrich_dist),
             "motif_enrichment_knn_specified": records(enrich_knn_specified),
             "motif_enrichment_dist_specified": records(enrich_dist_specified),
+            "motif_enrichment_knn_nested": records(enrich_knn_nested),
+            "motif_enrichment_dist_nested": records(enrich_dist_nested),
+            "motif_composition_knn": records(composition_knn),
+            "motif_composition_dist": records(composition_dist),
         }, f, cls=NumpyEncoder, indent=2)
