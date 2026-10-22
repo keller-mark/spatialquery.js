@@ -21,8 +21,8 @@ type ToObsSetNameFunc = ReturnType<typeof generateObsIdToObsSetName>;
 // Reference: https://spatialquery.readthedocs.io/en/latest/generated/SpatialQuery.spatial_query.__init__.html
 type InitParams = {
   obsIndex: string[],
-  xCoords: Float32Array,
-  yCoords: Float32Array,
+  xCoords: Float32Array | Float64Array,
+  yCoords: Float32Array | Float64Array,
   obsIdToObsSetName: ToObsSetNameFunc,
   leafSize?: number, // Default: 10
   normalizeSpatialCoord?: boolean, // Default: true
@@ -30,25 +30,59 @@ type InitParams = {
 
 type SqContext = {
   obsIndex: string[],
+  // Spatial coordinates, normalized if normalizeSpatialCoord was true.
+  xCoords: Float32Array | Float64Array,
+  yCoords: Float32Array | Float64Array,
   flatbushIndex: Flatbush,
   xExtent: [number, number],
   yExtent: [number, number],
+}
+
+// Scale spatial coordinates so that the mean nearest neighbor distance equals 1.
+// Reference: https://github.com/ShaokunAn/Spatial-Query/blob/0570c54bd6e046466e05c6b800d6701a7ab15c4a/SpatialQuery/spatial_utils.py#L804
+export function normalizeSpatialCoords(xCoords: Float32Array | Float64Array, yCoords: Float32Array | Float64Array) {
+  const numCells = xCoords.length;
+  assert(numCells >= 2, "At least two cells are required to normalize spatial coordinates.");
+
+  // Temporary spatial index over the original coordinates, used to find each cell's nearest neighbor.
+  const index = new Flatbush(numCells);
+  for (let i = 0; i < numCells; i++) {
+    index.add(xCoords[i], yCoords[i]);
+  }
+  index.finish();
+
+  let nnDistSum = 0;
+  for (let i = 0; i < numCells; i++) {
+    // Exclude the cell itself (equivalent to taking the second result of a k=2 KDTree query).
+    const [j] = index.neighbors(xCoords[i], yCoords[i], 1, Infinity, (j) => j !== i);
+    nnDistSum += Math.hypot(xCoords[i] - xCoords[j], yCoords[i] - yCoords[j]);
+  }
+  const nnDist = nnDistSum / numCells;
+  assert(nnDist > 0, "Mean nearest neighbor distance was zero; cannot normalize spatial coordinates.");
+
+  const scaleFactor = 1.0 / nnDist;
+  return {
+    xCoords: Float64Array.from(xCoords, x => x * scaleFactor),
+    yCoords: Float64Array.from(yCoords, y => y * scaleFactor),
+    scaleFactor,
+  };
 }
 
 // Build the context object.
 export function buildContext(params: InitParams): SqContext {
   const {
     obsIndex, // Array of each obs ID, as a string.
-    xCoords, // TypedArray containing X coordinate of each cell (centroid)
-    yCoords, // TypedArray containing Y coordinate of each cell (centroid)
+    xCoords: rawXCoords, // TypedArray containing X coordinate of each cell (centroid)
+    yCoords: rawYCoords, // TypedArray containing Y coordinate of each cell (centroid)
 
     leafSize = 10, // Leaf size parameter for KDTree construction. Larger values reduce tree depth but increase computation per query.
     normalizeSpatialCoord = true, // If True, normalizes spatial coordinates so mean nearest neighbor distance equals 1. This makes max_dist parameter interpretable as “number of cell diameters.” Set to False if original spatial units (e.g., micrometers) are required and should be preserved for downstream analysis.
   } = params;
 
-  // TODO: implement normalizeSpatialCoord here.
+  const { xCoords, yCoords } = normalizeSpatialCoord
+    ? normalizeSpatialCoords(rawXCoords, rawYCoords)
+    : { xCoords: rawXCoords, yCoords: rawYCoords };
 
-  // TODO: ensure that xExtent and yExtent reflect post-normalizeSpatialCoord handling.
   const xExtent = extent(xCoords);
   const yExtent = extent(yCoords);
 
@@ -60,7 +94,6 @@ export function buildContext(params: InitParams): SqContext {
 
   // fill it with 1000 rectangles
   for (let i = 0; i < obsIndex.length; i++) {
-    // TODO: use normalized values here if normalizeSpatialCoord is true.
     flatbushIndex.add(xCoords[i], yCoords[i]);
   }
 
@@ -69,6 +102,8 @@ export function buildContext(params: InitParams): SqContext {
 
   return {
     obsIndex,
+    xCoords,
+    yCoords,
     xExtent,
     yExtent,
     flatbushIndex,
