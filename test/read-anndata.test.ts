@@ -22,7 +22,7 @@ describe("read-anndata", () => {
 
     const group = await zarr.open(store, { kind: "group" });
 
-    // We use a patched anndata.js due to
+    // Requires anndata.js >= 0.0.3 for the fix to
     // https://github.com/ilan-gold/anndata.js/issues/52
     const adata = await readZarr(store);
 

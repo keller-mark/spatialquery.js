@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  anndata.js@0.0.3:
+    hash: c160c6a478407af02a12ec157133f05f393554797a4111c43a8ea2553002e55a
+    path: patches/anndata.js@0.0.3.patch
+
 importers:
 
   .:
@@ -31,8 +36,8 @@ importers:
         specifier: ^0.1.4
         version: 0.1.4
       anndata.js:
-        specifier: workspace:*
-        version: link:anndata.js
+        specifier: ^0.0.3
+        version: 0.0.3(patch_hash=c160c6a478407af02a12ec157133f05f393554797a4111c43a8ea2553002e55a)
       hdf5-as-virtual-zarr:
         specifier: 0.1.1
         version: 0.1.1
@@ -43,8 +48,8 @@ importers:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@26.6.5)(yaml@2.9.1)
       zarrita:
-        specifier: ^0.6.1
-        version: 0.6.2
+        specifier: ^0.7.5
+        version: 0.7.5
 
   anndata.js:
     dependencies:
@@ -853,6 +858,9 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  anndata.js@0.0.3:
+    resolution: {integrity: sha512-6hO/eZR20LQjdGAUGdJA1t3iDI7y7Upsmlnwq90gkIo7vsykRtBDt4HV0wx2iLTeWaHGsUpq4Dp3xLiBlLI6ww==}
+
   ansi-styles@5.2.0:
     resolution: {integrity: sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==}
     engines: {node: '>=10'}
@@ -1439,9 +1447,6 @@ packages:
   yocto-queue@1.2.2:
     resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
     engines: {node: '>=12.20'}
-
-  zarrita@0.6.2:
-    resolution: {integrity: sha512-8IV+2bWt5yiHNVK9GVEVK1tscpqDcJj8iz5cIKFOiWiWYUsK4V5njgMtnpkvKu6L7K+Og6zUShd8f+dwb6LvTA==}
 
   zarrita@0.7.5:
     resolution: {integrity: sha512-ZriOSEne+Wf2iuM0yjDZvUKpHNlug3dO7qJ6mAxXoOgsYV18DPOkAkwB9e0rf21bHcKcOffFuwoZwn5g6pvUeA==}
@@ -2343,6 +2348,11 @@ snapshots:
 
   acorn@8.19.0: {}
 
+  anndata.js@0.0.3(patch_hash=c160c6a478407af02a12ec157133f05f393554797a4111c43a8ea2553002e55a):
+    dependencies:
+      numcodecs: 0.2.2
+      zarrita: 0.7.5
+
   ansi-styles@5.2.0: {}
 
   argparse@2.0.1: {}
@@ -2936,11 +2946,6 @@ snapshots:
   yaml@2.9.1: {}
 
   yocto-queue@1.2.2: {}
-
-  zarrita@0.6.2:
-    dependencies:
-      '@zarrita/storage': 0.1.4
-      numcodecs: 0.3.2
 
   zarrita@0.7.5:
     dependencies:
