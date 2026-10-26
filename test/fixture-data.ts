@@ -130,11 +130,11 @@ export function expectEnrichmentStatsToMatch<T extends EnrichmentStats>(js: T[],
 }
 
 // Compare motif composition rows (in order).
-export function expectCompositionToMatch(js: (MotifCompositionRow & { dataset?: string })[], py: PyComposition[]) {
+export function expectCompositionToMatch(js: (MotifCompositionRow & { datasetId?: string })[], py: PyComposition[]) {
   expect(js.length).toBe(py.length);
   js.forEach((row, i) => {
     const pyRow = py[i];
-    expect(row.dataset).toBe(pyRow.dataset);
+    expect(row.datasetId).toBe(pyRow.dataset);
     expect(row.center).toBe(pyRow.center);
     expect(row.motifs).toEqual(pyRow.motifs);
     expect(row.cellType).toBe(pyRow.cell_type);

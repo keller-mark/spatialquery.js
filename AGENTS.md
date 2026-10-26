@@ -27,7 +27,8 @@ Out of scope: gene expression analyses (`de_genes`, gene-gene covarying), and pl
 ## Conventions
 
 - Spatial index: Flatbush. Radius queries via `neighbors(x, y, Infinity, maxDist)` (inclusive, like `query_ball_point`); k-NN via `neighbors(x, y, k, Infinity, j => j !== i)` (like `query(k=k+1)` minus the cell itself).
-- Results use camelCase field names; cell IDs are returned as obs ID strings (`neighborIds`, `centerIds`), not integer indices. Multi-FOV cell IDs are keyed by FOV name (`Record<string, string[]>`), like Python's `{dataset: [ids]}` dicts.
+- Results use camelCase field names; cell IDs are returned as obs ID strings (`neighborIds`, `centerIds`), not integer indices. Multi-FOV cell IDs are keyed by dataset ID (`Record<string, string[]>`), like Python's `{dataset: [ids]}` dicts.
+- Multi-FOV datasets: each FOV has an explicit, unique `datasetId` and a `datasetClass` (e.g., condition) shared by related FOVs. Python instead takes one (possibly repeated) name per FOV and derives unique FOV names internally (`'a_b'` -> `'a-b_0'`, `'a-b_1'`, ...), recovering the class with `name.split('_')[0]`. Python's `dataset` filter corresponds to `datasetClass`, `dataset_i` to `datasetId`, and the differential analysis `datasets` to `datasetClasses`.
 - Multi-FOV functions take a `SqMultiContext` and are prefixed with `multi` when a single-FOV function of the same name exists (`multiMotifEnrichmentKnn`, ...).
 - `findPatternsRand` uses `Math.random` (no numpy-compatible seeded RNG); its tests must be robust to randomness.
 
@@ -37,7 +38,7 @@ Out of scope: gene expression analyses (`de_genes`, gene-gene covarying), and pl
 - `motif_enrichment_*` with `return_cellID=True`: Python silently drops motifs with no center cells; JS keeps them with empty cell IDs.
 - Cells at identical coordinates: k-NN may exclude a different cell than scipy's "drop the first result".
 - Patterns with tied support / adjusted p-values may be ordered differently.
-- Multi-FOV: invalid `dataset` names throw in every method (Python only validates them in `find_fp_*` and the differential analysis).
+- Multi-FOV: invalid `datasetClass` values throw in every method (Python only validates dataset names in `find_fp_*` and the differential analysis).
 - Multi-FOV `find_fp_knn` with `max_dist <= 0`: Python adds empty transactions; JS adds none (as in single-FOV).
 - Differential analysis: duplicate motifs are tested once (Python appends their supports twice to the same list). Results also include `differentialTestsKnn/Dist`, which return every tested motif (not just the significant ones).
 

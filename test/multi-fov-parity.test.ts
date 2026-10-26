@@ -105,11 +105,15 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
   beforeAll(async () => {
     const { obsIndex, labels, xCoords, yCoords } = await loadCellData();
     const cellFov: number[] = fixture.cell_fov;
-    const fovs: FovInitParams[] = fixture.fov_datasets.map((dataset: string, fov: number) => {
+    // Python derives unique FOV names from the (repeated) dataset names, e.g. 'kidney_left' -> 'kidney-left_0'.
+    // The Python outputs are keyed by these names, so we use them as the explicit dataset IDs,
+    // and the corresponding dataset names (e.g. 'kidney-left') as the dataset classes.
+    const fovs: FovInitParams[] = fixture.renamed_datasets.map((datasetId: string, fov: number) => {
       const indices = cellFov.flatMap((f, i) => (f === fov ? [i] : []));
       const fovObsIndex = indices.map(i => obsIndex[i]);
       return {
-        dataset,
+        datasetId,
+        datasetClass: datasetId.split('_')[0],
         obsIndex: fovObsIndex,
         xCoords: Float64Array.from(indices, i => xCoords[i]),
         yCoords: Float64Array.from(indices, i => yCoords[i]),
@@ -120,8 +124,14 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
     multi = buildMultiContext(fovs);
   });
 
-  it("buildMultiContext renames datasets as in Python", () => {
-    expect(multi.datasets).toEqual(fixture.renamed_datasets);
+  it("buildMultiContext keeps the dataset IDs and classes, and rejects duplicate IDs", () => {
+    expect(multi.datasetIds).toEqual(fixture.renamed_datasets);
+    expect(new Set(multi.datasetClasses)).toEqual(new Set(params.datasets));
+    const fov = { obsIndex: ["a", "b"], xCoords: Float64Array.of(0, 1), yCoords: Float64Array.of(0, 1), obsIdToObsSetName: () => "T cell" };
+    expect(() => buildMultiContext([
+      { ...fov, datasetId: "sample_1", datasetClass: "control" },
+      { ...fov, datasetId: "sample_1", datasetClass: "disease" },
+    ])).toThrow("Dataset IDs must be unique");
   });
 
   it("multiFindFpKnn", async () => {
@@ -131,21 +141,21 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
     expectPatternsToMatch(patterns, fixture.find_fp_knn);
   });
 
-  it("multiFindFpDist with a dataset filter", async () => {
+  it("multiFindFpDist with a dataset class filter", async () => {
     const patterns = await multiFindFpDist(multi, {
-      ct: params.ct, dataset: "kidney-left", maxDist: params.max_dist, minSize: params.min_size, minSupport: params.min_support,
+      ct: params.ct, datasetClass: "kidney-left", maxDist: params.max_dist, minSize: params.min_size, minSupport: params.min_support,
     });
     expectPatternsToMatch(patterns, fixture.find_fp_dist_left);
   });
 
   it("findFpKnnFov / findFpDistFov", async () => {
     expectPatternsToMatch(await findFpKnnFov(multi, {
-      ct: params.ct, datasetI: "kidney-left_0", k: params.k, minSupport: params.min_support, maxDist: params.max_dist,
+      ct: params.ct, datasetId: "kidney-left_0", k: params.k, minSupport: params.min_support, maxDist: params.max_dist,
     }), fixture.find_fp_knn_fov);
     expectPatternsToMatch(await findFpDistFov(multi, {
-      ct: params.ct, datasetI: "kidney-right_3", maxDist: params.max_dist, minSize: params.min_size, minSupport: params.min_support,
+      ct: params.ct, datasetId: "kidney-right_3", maxDist: params.max_dist, minSize: params.min_size, minSupport: params.min_support,
     }), fixture.find_fp_dist_fov);
-    await expect(findFpKnnFov(multi, { ct: params.ct, datasetI: "kidney-left_99" })).rejects.toThrow("Found no");
+    await expect(findFpKnnFov(multi, { ct: params.ct, datasetId: "kidney-left_99" })).rejects.toThrow("Found no");
   });
 
   it("multiMotifEnrichmentKnn", async () => {
@@ -164,9 +174,9 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
       fixture.motif_enrichment_dist_motif_ids, fixture.motif_enrichment_dist_center_ids);
   });
 
-  it("multiMotifEnrichmentKnn with specified motifs and a dataset filter", async () => {
+  it("multiMotifEnrichmentKnn with specified motifs and a dataset class filter", async () => {
     const results = await multiMotifEnrichmentKnn(multi, {
-      ct: params.ct, motifs: params.specified_motifs, dataset: "kidney-right", k: params.k, maxDist: params.max_dist,
+      ct: params.ct, motifs: params.specified_motifs, datasetClass: "kidney-right", k: params.k, maxDist: params.max_dist,
     });
     expectEnrichmentToMatch(results, fixture.motif_enrichment_knn_specified_right);
   });
@@ -181,7 +191,7 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
 
   it("multi-FOV functions reject invalid inputs", async () => {
     await expect(multiMotifEnrichmentDist(multi, { ct: "not a cell type" })).rejects.toThrow("Found no");
-    await expect(multiFindFpKnn(multi, { ct: params.ct, dataset: "not a dataset" })).rejects.toThrow("Invalid input dataset name");
+    await expect(multiFindFpKnn(multi, { ct: params.ct, datasetClass: "not a class" })).rejects.toThrow("Invalid dataset class");
     await expect(multiMotifEnrichmentKnn(multi, { ct: params.ct, motifs: ["not a cell type"] })).rejects.toThrow("All cell types in motifs");
   });
 
@@ -192,16 +202,16 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
     expectCompositionToMatch(rows, fixture.motif_composition_knn);
   });
 
-  it("multiMotifCompositionDist with a dataset filter", () => {
+  it("multiMotifCompositionDist with a dataset class filter", () => {
     const rows = multiMotifCompositionDist(multi, {
-      ct: params.ct, motifs: params.specified_motifs, dataset: "kidney-left", maxDist: params.max_dist,
+      ct: params.ct, motifs: params.specified_motifs, datasetClass: "kidney-left", maxDist: params.max_dist,
     });
     expectCompositionToMatch(rows, fixture.motif_composition_dist_left);
   });
 
   it("differentialAnalysisKnn", async () => {
     const diffParams = {
-      ct: params.ct, datasets: params.datasets, k: params.k, minSupport: params.min_support, maxDist: params.max_dist,
+      ct: params.ct, datasetClasses: params.datasets, k: params.k, minSupport: params.min_support, maxDist: params.max_dist,
     };
     const tests = await differentialTestsKnn(multi, diffParams);
     const significant = await differentialAnalysisKnn(multi, diffParams);
@@ -210,7 +220,7 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
 
   it("differentialAnalysisDist", async () => {
     const diffParams = {
-      ct: params.ct, datasets: params.datasets, maxDist: params.max_dist, minSupport: params.min_support, minSize: params.min_size,
+      ct: params.ct, datasetClasses: params.datasets, maxDist: params.max_dist, minSupport: params.min_support, minSize: params.min_size,
     };
     const tests = await differentialTestsDist(multi, diffParams);
     const significant = await differentialAnalysisDist(multi, diffParams);
@@ -219,13 +229,13 @@ describe("Compare Python multi-FOV outputs to JS outputs", () => {
 
   it("differentialAnalysisDist with specified motifs", async () => {
     const diffParams = {
-      ct: params.ct, datasets: params.datasets, motifs: params.specified_motifs, maxDist: params.max_dist,
+      ct: params.ct, datasetClasses: params.datasets, motifs: params.specified_motifs, maxDist: params.max_dist,
     };
     const tests = await differentialTestsDist(multi, diffParams);
     const significant = await differentialAnalysisDist(multi, diffParams);
-    // Both specified motifs are significantly more frequent in one of the datasets.
+    // Both specified motifs are significantly more frequent in one of the dataset classes.
     expect(Object.values(significant).flat()).toHaveLength(2);
     expectDifferentialToMatch(tests, significant, fixture.differential_analysis_dist_specified);
-    await expect(differentialAnalysisDist(multi, { ...diffParams, datasets: ["kidney-left"] })).rejects.toThrow("Require 2 datasets");
+    await expect(differentialAnalysisDist(multi, { ...diffParams, datasetClasses: ["kidney-left"] })).rejects.toThrow("Require 2 dataset classes");
   });
 });
