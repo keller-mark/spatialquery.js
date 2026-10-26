@@ -26,7 +26,7 @@ import {
 } from './single-fov.js';
 import { mineFrequentPatterns, type FrequentPattern } from './fpgrowth.js';
 import { nestedMotifDescent } from './nested.js';
-import { applyFdrCorrection, fdrCorrection, mannWhitneyU, rankAverage, median } from './stats.js';
+import { applyFdrCorrection, fdrCorrection, mannWhitneyU, rankAverage, median, mean } from './stats.js';
 
 export type FovInitParams = InitParams & {
   // Unique ID of the dataset (FOV).
@@ -419,13 +419,12 @@ function differentialTests(
   const results = motifs.map((itemsets, m) => {
     const group1 = supports[m][c0];
     const group2 = supports[m][c1];
-    const mean = (g: number[]) => g.reduce((a, b) => a + b, 0) / g.length;
     let pValue = 1.0;
     let datasetClassHigherFrequency = 'neither';
     if (group1.length > 0 && group2.length > 0) {
       pValue = mannWhitneyU(group1, group2).pValue;
       // Determine which class has higher frequency using the median rank.
-      const { ranks } = rankAverage([...group1, ...group2]);
+      const ranks = rankAverage([...group1, ...group2]);
       const medianRank1 = median(ranks.slice(0, group1.length));
       const medianRank2 = median(ranks.slice(group1.length));
       datasetClassHigherFrequency = medianRank1 > medianRank2 ? c0 : c1;

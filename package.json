@@ -21,6 +21,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
+    "@stdlib/stats": "^0.4.1",
     "d3-array": "^2.4.0",
     "flatbush": "^4.4.0",
     "internmap": "^2.0.3",

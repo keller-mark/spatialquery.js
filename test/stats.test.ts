@@ -71,9 +71,7 @@ describe("mannWhitneyU", () => {
 
 describe("rankAverage", () => {
   it("assigns tied values their average rank", () => {
-    const { ranks, tieCounts } = rankAverage([0.3, 0.1, 0.3, 0.2, 0.3]);
-    expect(ranks).toEqual([4, 1, 4, 2, 4]);
-    expect(tieCounts.toSorted()).toEqual([1, 1, 3]);
+    expect(rankAverage([0.3, 0.1, 0.3, 0.2, 0.3])).toEqual([4, 1, 4, 2, 4]);
   });
 });
 

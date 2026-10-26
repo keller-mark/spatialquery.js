@@ -21,7 +21,8 @@ Out of scope: gene expression analyses (`de_genes`, gene-gene covarying), and pl
 - `src/multi-fov.ts`: multi-FOV context (`buildMultiContext`) and functions (`spatial_query_multi`), including differential analysis.
 - `src/nested.ts`: nested motif enrichment (`nestedMotifDescent`).
 - `src/fpgrowth.ts`: frequent pattern mining (`node-fpgrowth`, made to match mlxtend `fpgrowth` + `find_maximal_patterns`).
-- `src/stats.ts`: `hypergeom`, `fdrCorrection` (statsmodels BH), `applyFdrCorrection`, `mannWhitneyU` (scipy `mannwhitneyu`, `method='auto'`), `normSf`, `rankAverage`, `roundHalfEven` (Python `round`).
+- `src/stats.ts`: scipy/statsmodels-compatible wrappers around `@stdlib/stats` (`hypergeom`, `fdrCorrection` via `padjust(..., 'bh')`, `normSf`, `rankAverage`, `mean`, `median`), plus `mannWhitneyU` (scipy `mannwhitneyu`, `method='auto'`; not in stdlib), `applyFdrCorrection`, and `roundHalfEven` (Python `round`).
+- `src/stdlib.d.ts`: type declarations for the `@stdlib/stats` imports (see Conventions).
 - `fixtures/*.py`: UV scripts that generate the Python reference outputs (JSON), compared against in `test/python-parity.test.ts` and `test/multi-fov-parity.test.ts` (shared helpers in `test/fixture-data.ts`). The multi-FOV fixtures split the HuBMAP dataset into 16 FOVs across two datasets.
 
 ## Conventions
@@ -30,6 +31,7 @@ Out of scope: gene expression analyses (`de_genes`, gene-gene covarying), and pl
 - Results use camelCase field names; cell IDs are returned as obs ID strings (`neighborIds`, `centerIds`), not integer indices. Multi-FOV cell IDs are keyed by dataset ID (`Record<string, string[]>`), like Python's `{dataset: [ids]}` dicts.
 - Multi-FOV datasets: each FOV has an explicit, unique `datasetId` and a `datasetClass` (e.g., condition) shared by related FOVs. Python instead takes one (possibly repeated) name per FOV and derives unique FOV names internally (`'a_b'` -> `'a-b_0'`, `'a-b_1'`, ...), recovering the class with `name.split('_')[0]`. Python's `dataset` filter corresponds to `datasetClass`, `dataset_i` to `datasetId`, and the differential analysis `datasets` to `datasetClasses`.
 - Multi-FOV functions take a `SqMultiContext` and are prefixed with `multi` when a single-FOV function of the same name exists (`multiMotifEnrichmentKnn`, ...).
+- Statistics: use `@stdlib/stats` where it provides the function rather than implementing it. Import the entry file of each subpath (e.g. `@stdlib/stats/padjust/lib/index.js`), since the package has no `exports` map and Node's ESM loader rejects directory imports like `@stdlib/stats/padjust`; declare each such import in `src/stdlib.d.ts`, re-using the subpath's types.
 - `findPatternsRand` uses `Math.random` (no numpy-compatible seeded RNG); its tests must be robust to randomness.
 
 ## Known deviations from Python
