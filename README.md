@@ -7,7 +7,9 @@ JavaScript implementation of [Spatial-Query](https://github.com/ShaokunAn/Spatia
 If you use SpatialQuery in your research, please cite the [preprint](https://doi.org/10.64898/2026.04.22.720136):
 
 ```
-Shaokun An, Mark Keller, Nils Gehlenborg, Martin Hemberg. SpatialQuery: scalable discovery and molecular characterization of multicellular motifs from spatial omics data. BioRxiv Preprints. doi: 10.64898/2026.04.22.720136
+Shaokun An, Mark Keller, Nils Gehlenborg, Martin Hemberg. SpatialQuery:
+scalable discovery and molecular characterization of multicellular motifs
+from spatial omics data. BioRxiv Preprints. doi: 10.64898/2026.04.22.720136
 ```
 
 ## Usage
