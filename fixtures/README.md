@@ -12,4 +12,6 @@ Download the `secondary_analysis.h5ad` file for sample `HBM838.LDFP.578` from th
 
 ```sh
 CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run test_find_patterns_grid.py
+CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run generate_motif_fixtures.py
+CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run generate_multi_fov_fixtures.py
 ```

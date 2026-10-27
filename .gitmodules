@@ -1,7 +1,3 @@
 [submodule "Spatial-Query"]
 	path = Spatial-Query
 	url = https://github.com/ShaokunAn/Spatial-Query
-[submodule "anndata.js"]
-	path = anndata.js
-	url = https://github.com/keller-mark/anndata.js
-	branch = keller-mark/upgrade-zarrita
