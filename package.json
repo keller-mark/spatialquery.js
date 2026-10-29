@@ -1,6 +1,6 @@
 {
   "name": "spatialquery.js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Port of Python SpatialQuery methods (An et al. bioRxiv 2026)",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,15 +8,19 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./bundled": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/bundled/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && vite build",
     "test": "vitest run",
     "prepublishOnly": "pnpm run build"
   },
@@ -31,8 +35,10 @@
     "@types/d3-array": "^3.2.2",
     "@zarrita/storage": "^0.1.4",
     "anndata.js": "^0.0.3",
+    "events": "^3.3.0",
     "hdf5-as-virtual-zarr": "0.1.1",
     "typescript": "^5.8.3",
+    "vite": "^7.3.2",
     "vitest": "^3.1.1",
     "zarrita": "^0.7.5"
   }

@@ -23,6 +23,7 @@ Out of scope: gene expression analyses (`de_genes`, gene-gene covarying), and pl
 - `src/fpgrowth.ts`: frequent pattern mining (`node-fpgrowth`, made to match mlxtend `fpgrowth` + `find_maximal_patterns`).
 - `src/stats.ts`: scipy/statsmodels-compatible wrappers around `@stdlib/stats` (`hypergeom`, `fdrCorrection` via `padjust(..., 'bh')`, `normSf`, `rankAverage`, `mean`, `median`), plus `mannWhitneyU` (scipy `mannwhitneyu`, `method='auto'`; not in stdlib), `applyFdrCorrection`, and `roundHalfEven` (Python `round`).
 - `src/stdlib.d.ts`: type declarations for the `@stdlib/stats` imports (see Conventions).
+- Build: `tsc` emits `dist/` (dependencies external); `vite build` (`vite.config.ts`) emits `dist/bundled/index.js` with dependencies bundled, exported as `spatialquery.js/bundled`. The `events` dev dependency is the browser polyfill for `node-fpgrowth`'s `require("events")`.
 - `fixtures/*.py`: UV scripts that generate the Python reference outputs (JSON), compared against in `test/python-parity.test.ts` and `test/multi-fov-parity.test.ts` (shared helpers in `test/fixture-data.ts`). The multi-FOV fixtures split the HuBMAP dataset into 16 FOVs across two datasets.
 
 ## Conventions

@@ -36,12 +36,18 @@ importers:
       anndata.js:
         specifier: ^0.0.3
         version: 0.0.3(patch_hash=c160c6a478407af02a12ec157133f05f393554797a4111c43a8ea2553002e55a)
+      events:
+        specifier: ^3.3.0
+        version: 3.3.0
       hdf5-as-virtual-zarr:
         specifier: 0.1.1
         version: 0.1.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vite:
+        specifier: ^7.3.2
+        version: 7.3.2
       vitest:
         specifier: ^3.1.1
         version: 3.2.4
@@ -630,6 +636,10 @@ packages:
   events@1.1.1:
     resolution: {integrity: sha512-kEcvvCBByWXGnZy6JUlgAp2gBIUjfCAV6P6TgT1/aaQKcmuAEC4OZTV1I4EWQLz2gxZw76atuVyvHhTxvi0Flw==}
     engines: {node: '>=0.4.x'}
+
+  events@3.3.0:
+    resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
+    engines: {node: '>=0.8.x'}
 
   expect-type@1.3.0:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
@@ -1666,6 +1676,8 @@ snapshots:
       '@types/estree': 1.0.8
 
   events@1.1.1: {}
+
+  events@3.3.0: {}
 
   expect-type@1.3.0: {}
 

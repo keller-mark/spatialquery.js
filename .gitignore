@@ -5,3 +5,4 @@ dist/
 *.csv
 *.tsv
 fixtures/*.json
+references/

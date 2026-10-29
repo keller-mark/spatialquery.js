@@ -16,19 +16,47 @@ If you use SpatialQuery in your research, please cite the [preprint](https://doi
 npm install spatialquery.js
 ```
 
+A build with all dependencies bundled in is available at `spatialquery.js/bundled` (e.g., for use from a CDN without import maps):
+
+```js
+import { buildContext } from 'spatialquery.js/bundled';
+```
+
 ## Usage
 
 ### Single field of view
 
+This example loads an AnnData object from a Zarr store using [zarrita](https://github.com/manzt/zarrita.js) and [anndata.js](https://github.com/ilan-gold/anndata.js) (`npm install zarrita anndata.js`).
+
 ```js
+import * as zarr from 'zarrita';
+import { readZarr, get } from 'anndata.js';
 import {
   buildContext,
   findPatternsGrid,
   motifEnrichmentDist,
   motifCompositionDist,
-} from 'spatial-query';
+} from 'spatialquery.js';
 
-// Cell type label of each cell.
+// HuBMAP kidney dataset (AnnData-Zarr).
+const url = 'https://assets.hubmapconsortium.org/0a21f3fa27109790483f2a0729be53de/hubmap_ui/anndata-zarr/secondary_analysis.zarr';
+const store = await zarr.withMaybeConsolidatedMetadata(new zarr.FetchStore(url));
+const adata = await readZarr(store);
+
+// Cell IDs.
+const obsIndex = Array.from((await get(await adata.obsNames(), [null])).data);
+
+// Cell type label of each cell (a categorical obs column).
+const predictedLabel = await adata.obs.get('predicted_label');
+const codes = (await get(predictedLabel.codes, [null])).data;
+const categories = (await get(predictedLabel.categories, [null])).data;
+const labels = Array.from(codes, code => categories[code]);
+
+// Spatial coordinates (an n_obs x 2 obsm array).
+const spatial = await adata.obsm.get('X_spatial');
+const xCoords = Float64Array.from((await get(spatial, [null, 0])).data);
+const yCoords = Float64Array.from((await get(spatial, [null, 1])).data);
+
 const obsIdToLabel = new Map(obsIndex.map((obsId, i) => [obsId, labels[i]]));
 
 const context = buildContext({
@@ -42,11 +70,12 @@ const context = buildContext({
 
 // Frequent cell type patterns around grid points.
 const patterns = await findPatternsGrid(context, { maxDist: 20, minSupport: 0.5 });
-// => [{ itemsets: ['B cell', 'T cell'], support: 0.62 }, ...]
+// => [{ itemsets: ['epithelial cell of proximal tubule segment 1', ...], support: 0.54 }, ...]
 
 // Motifs enriched around a center cell type (k-NN version: motifEnrichmentKnn).
+const ct = 'kidney loop of Henle cortical thick ascending limb epithelial cell';
 const enrichment = await motifEnrichmentDist(context, {
-  ct: 'T cell',
+  ct,
   maxDist: 20,
   returnCellIds: true,  // adds centerIds / neighborIds (obs IDs) to each result
 });
@@ -54,7 +83,7 @@ const enrichment = await motifEnrichmentDist(context, {
 
 // Composition of a motif in the neighborhoods of the center cells.
 const composition = motifCompositionDist(context, {
-  ct: 'T cell',
+  ct,
   motifs: enrichment[0].motifs,
   maxDist: 20,
 });
@@ -70,7 +99,7 @@ import {
   buildMultiContext,
   multiMotifEnrichmentKnn,
   differentialAnalysisKnn,
-} from 'spatial-query';
+} from 'spatialquery.js';
 
 // One entry per FOV, with a unique dataset ID and a class (e.g., condition) shared by related FOVs.
 const multi = buildMultiContext([
