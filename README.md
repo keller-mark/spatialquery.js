@@ -135,3 +135,7 @@ pnpm publish --no-git-checks --access public
 Related to:
 - Initial implementation work in [vitessce#2116](https://github.com/vitessce/vitessce/pull/2116/).
 - Widget plugin in [vitessce-python](https://github.com/vitessce/vitessce-python/blob/main/src/vitessce/widget_plugins/spatial_query.py) ([example notebook](https://github.com/vitessce/vitessce-python/blob/main/docs/notebooks/widget_plugin_spatial-query.ipynb))
+
+## AI usage disclosure
+
+The initial package structure and initial porting efforts were performed by a human. Then, Claude Code was used to port additional functions from Python to TypeScript, and to assist in generation of unit tests to compare JavaScript outputs to the ground-truth Python outputs.
