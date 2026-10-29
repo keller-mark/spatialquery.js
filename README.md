@@ -1,4 +1,4 @@
-# spatial-query.js
+# spatialquery.js
 JavaScript implementation of [Spatial-Query](https://github.com/ShaokunAn/Spatial-Query).
 
 
