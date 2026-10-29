@@ -1,7 +1,7 @@
 {
-  "name": "spatial-query",
+  "name": "spatialquery.js",
   "version": "0.1.0",
-  "description": "Spatial query utilities",
+  "description": "Port of Python SpatialQuery methods (An et al. bioRxiv 2026)",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

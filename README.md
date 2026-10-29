@@ -1,4 +1,4 @@
-# spatial-query.js
+# spatialquery.js
 JavaScript implementation of [Spatial-Query](https://github.com/ShaokunAn/Spatial-Query).
 
 
@@ -8,6 +8,13 @@ If you use SpatialQuery in your research, please cite the [preprint](https://doi
 
 
 > Shaokun An, Mark Keller, Nils Gehlenborg, Martin Hemberg. **SpatialQuery: scalable discovery and molecular characterization of multicellular motifs from spatial omics data.** bioRxiv. doi: 10.64898/2026.04.22.720136
+
+
+## Installation
+
+```sh
+npm install spatialquery.js
+```
 
 ## Usage
 
@@ -96,12 +103,31 @@ Other functions: `multiFindFpKnn`, `multiFindFpDist`, `findFpKnnFov` / `findFpDi
 pnpm install
 ```
 
+Download the test fixture files and run the Python fixture conversion/generation scripts:
+
+```sh
+cd fixtures
+# The HuBMAP assets server rejects curl's default User-Agent.
+curl -fL -A "Mozilla/5.0" -o secondary_analysis.h5ad https://assets.hubmapconsortium.org/0a21f3fa27109790483f2a0729be53de/secondary_analysis.h5ad
+CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run test_find_patterns_grid.py
+CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run generate_motif_fixtures.py
+CC=/usr/bin/clang CXX=/usr/bin/clang++ uv run generate_multi_fov_fixtures.py
+cd ..
+```
+
 ### Testing
 
 The tests compare the JS outputs to Python reference outputs. See [fixtures/README.md](fixtures/README.md) to download the test data and generate the reference outputs, then:
 
 ```sh
 pnpm test
+```
+
+### Publish to NPM
+
+```sh
+npm login
+pnpm publish --no-git-checks --access public
 ```
 
 ## Related work
